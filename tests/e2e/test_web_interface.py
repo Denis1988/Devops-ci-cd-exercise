@@ -2,16 +2,15 @@ import pytest
 import time
 import json
 import os
+import threading
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.firefox.service import Service
-from selenium.webdriver.firefox.options import Options
-from webdriver_manager.firefox import GeckoDriverManager
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from webdriver_manager.chrome import ChromeDriverManager
 from app import create_app
-import threading
-
 
 @pytest.fixture(scope="module")
 def app_server():
@@ -26,41 +25,31 @@ def app_server():
     time.sleep(2)  # Give server time to start
     yield "http://127.0.0.1:5000"
 
-
 @pytest.fixture
 def driver(app_server):
-    firefox_options = Options()
-    # firefox_options.add_argument("--headless")
-    firefox_options.add_argument("--no-sandbox")
-    firefox_options.add_argument("--disable-dev-shm-usage")
+    chrome_options = ChromeOptions()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+
+    # Point directly to the Ubuntu system-installed driver
+    # Usually located at /usr/bin/chromedriver or /usr/lib/chromium-browser/chromedriver
+    service = ChromeService(executable_path='/usr/bin/chromedriver')
     
     try:
-        service = Service(GeckoDriverManager().install())
-        driver = webdriver.Firefox(service=service, options=firefox_options)
-    except OSError as e:
-        # Handle exec format error by trying to find system geckodriver
-        if "Exec format error" in str(e):
-            # Try to use system geckodriver if available
-            try:
-                driver = webdriver.Firefox(options=firefox_options)
-            except Exception:
-                pytest.skip("GeckoDriver not available or incompatible")
-        else:
-            raise e
-    
-    driver.implicitly_wait(10)
-    
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+    except Exception as e:
+        pytest.skip(f"System Chrome/Chromium failed: {e}")
+
     yield driver
-    
     driver.quit()
 
 
 class TestWebInterface:
     def test_page_loads_successfully(self, driver, app_server):
         driver.get(app_server)
-        
         assert "DevOps Testing Application" in driver.title
-        
         h1_element = driver.find_element(By.TAG_NAME, "h1")
         assert "DevOps Testing Application" in h1_element.text
     

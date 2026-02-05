@@ -1,162 +1,186 @@
-def FAILED_STAGE = "unknown"
+// Jenkinsfile (Declarative Pipeline: stages-first, no helper functions)
+// Fill in the TODO commands for your repo/tests and infra paths.
 
-def runStage(String name, Closure body) {
-  stage(name) {
-    FAILED_STAGE = name
-    body()
+pipeline {
+  agent any
+
+  options {
+    timestamps()
+    disableConcurrentBuilds()
+    buildDiscarder(logRotator(numToKeepStr: '30'))
   }
-}
 
-node {
-  // Parameters / environment
-  def DOCKER_IMAGE = "yourdockerhubuser/yourapp"
-  def VERSION_TAG = "v${env.BUILD_NUMBER}"
-  def ENVIRONMENT = (params.ENVIRONMENT ?: "staging")
+  parameters {
+    choice(name: 'ENVIRONMENT', choices: ['staging', 'production'], description: 'Target environment')
+  }
 
-  properties([
-    parameters([
-      choice(name: 'ENVIRONMENT', choices: ['staging', 'production'], description: 'Target environment')
-    ])
-  ])
+  environment {
+    DOCKER_IMAGE = 'yourdockerhubuser/yourapp'
+    VERSION_TAG  = "v${BUILD_NUMBER}"
 
-  def startMillis = System.currentTimeMillis()
+    // Jenkins credentials IDs you must create in Jenkins:
+    DOCKERHUB_CREDS = credentials('dockerhub-creds') // usernamePassword
+    // AWS creds: use AWS Credentials plugin binding in "withCredentials" (below).
+    // Jira + Slack + Email: require plugins + global config.
+  }
 
-  try {
-    runStage('Checkout') {
-      checkout scm
+  stages {
+
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
     }
 
-    runStage('Test: unit + integration + e2e') {
-      // Replace these with your real commands.
-      // Mandatory to pass -> let them fail the build (default behavior).
-      sh '''
-        set -eu
-        echo "Run unit tests..."
-        # e.g. pytest -q --junitxml=reports/unit.xml
-
-        echo "Run integration tests..."
-        # e.g. pytest -q -m integration --junitxml=reports/integration.xml
-
-        echo "Run e2e tests..."
-        # e.g. pytest -q -m e2e --junitxml=reports/e2e.xml
-
-        echo "Generate coverage HTML to htmlcov/ ..."
-        # e.g. pytest --cov --cov-report=html:htmlcov
-      '''
-    }
-
-    runStage('Test: performance (prod only)') {
-      if (ENVIRONMENT != 'production') {
-        echo "Skipping performance tests for ENVIRONMENT=${ENVIRONMENT}"
-      } else {
+    stage('Test: unit + integration + e2e') {
+      steps {
+        // Make tests mandatory to pass: do NOT wrap with catchError.
         sh '''
           set -eu
-          echo "Run performance tests..."
-          # e.g. k6 run perf/script.js
+
+          echo "TODO: run unit tests (must output JUnit XML)"
+          # e.g. pytest -q --junitxml=reports/unit.xml
+
+          echo "TODO: run integration tests (must output JUnit XML)"
+          # e.g. pytest -q -m integration --junitxml=reports/integration.xml
+
+          echo "TODO: run e2e tests (must output JUnit XML)"
+          # e.g. pytest -q -m e2e --junitxml=reports/e2e.xml
+
+          echo "TODO: generate coverage HTML to htmlcov/"
+          # e.g. pytest --cov --cov-report=html:htmlcov
         '''
       }
     }
 
-    runStage('Publish reports (Jenkins UI)') {
-      // JUnit XML aggregation in Jenkins UI
-      junit allowEmptyResults: false, testResults: '**/reports/**/*.xml'  // adjust glob
-      // Archive HTML coverage directory so it’s downloadable
-      archiveArtifacts artifacts: 'htmlcov/**', fingerprint: true
-      // Publish HTML coverage as a browsable report link
-      // publishHTML is provided by the HTML Publisher plugin, and is commonly used for coverage HTML. [page:3]
-      publishHTML(target: [
-        allowMissing: false,
-        keepAll: true,
-        alwaysLinkToLastBuild: true,
-        reportDir: 'htmlcov',
-        reportFiles: 'index.html',
-        reportName: 'Coverage'
-      ])
-    }
-
-    runStage('Tag + build Docker image') {
-      sh """
-        set -eu
-        git config user.email "jenkins@local"
-        git config user.name "jenkins"
-        git tag ${VERSION_TAG}
-      """
-      // If you want to push the tag back to origin, you’ll need credentials + git push here.
-
-      sh """
-        set -eu
-        docker build -f docker/Dockerfile -t ${DOCKER_IMAGE}:${VERSION_TAG} .
-        docker tag ${DOCKER_IMAGE}:${VERSION_TAG} ${DOCKER_IMAGE}:latest
-      """
-    }
-
-    runStage('Push image to Docker Hub') {
-      withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
-        sh """
+    stage('Test: performance (production only)') {
+      when {
+        expression { return params.ENVIRONMENT == 'production' }
+      }
+      steps {
+        sh '''
           set -eu
-          echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin
-          docker push ${DOCKER_IMAGE}:${VERSION_TAG}
-          docker push ${DOCKER_IMAGE}:latest
-        """
+          echo "TODO: run performance tests (k6/jmeter/locust/etc.)"
+        '''
       }
     }
 
-    runStage('CD: Deploy to AWS staging (Terraform + Ansible)') {
-      if (ENVIRONMENT != 'staging') {
-        echo "Skipping staging deploy for ENVIRONMENT=${ENVIRONMENT}"
-      } else {
-        withCredentials([
-          [$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']
-        ]) {
+    stage('Reports: JUnit + Coverage') {
+      steps {
+        // Jenkins shows test results via junit and keeps artifacts via archiveArtifacts. [page:2]
+        junit allowEmptyResults: false, testResults: '**/reports/**/*.xml'
+        archiveArtifacts artifacts: 'htmlcov/**', fingerprint: true
+
+        // Publish HTML coverage report in Jenkins UI (HTML Publisher plugin). [page:3]
+        publishHTML(target: [
+          allowMissing: false,
+          keepAll: true,
+          alwaysLinkToLastBuild: true,
+          reportDir: 'htmlcov',
+          reportFiles: 'index.html',
+          reportName: 'Coverage'
+        ])
+      }
+    }
+
+    stage('Tag (local)') {
+      steps {
+        sh '''
+          set -eu
+          git config user.email "jenkins@local"
+          git config user.name "jenkins"
+          git tag "${VERSION_TAG}"
+          echo "Created tag ${VERSION_TAG} (local only)."
+          echo "TODO (optional): push tag to origin using SSH/https creds"
+        '''
+      }
+    }
+
+    stage('Build Docker image') {
+      steps {
+        sh '''
+          set -eu
+          docker build -f docker/Dockerfile -t "${DOCKER_IMAGE}:${VERSION_TAG}" .
+          docker tag "${DOCKER_IMAGE}:${VERSION_TAG}" "${DOCKER_IMAGE}:latest"
+        '''
+      }
+    }
+
+    stage('Push image to Docker Hub') {
+      steps {
+        sh '''
+          set -eu
+          echo "${DOCKERHUB_CREDS_PSW}" | docker login -u "${DOCKERHUB_CREDS_USR}" --password-stdin
+          docker push "${DOCKER_IMAGE}:${VERSION_TAG}"
+          docker push "${DOCKER_IMAGE}:latest"
+        '''
+      }
+    }
+
+    stage('CD: Deploy to AWS staging (Terraform + Ansible)') {
+      when {
+        expression { return params.ENVIRONMENT == 'staging' }
+      }
+      steps {
+        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
           sh '''
             set -eu
-            cd infra/terraform/staging
-            terraform init
-            terraform apply -auto-approve
-          '''
-          sh '''
-            set -eu
-            cd infra/ansible
-            ansible-playbook -i inventories/staging site.yml
+
+            echo "TODO: Terraform apply (staging)"
+            # cd infra/terraform/staging
+            # terraform init
+            # terraform apply -auto-approve
+
+            echo "TODO: Ansible deploy (staging)"
+            # cd infra/ansible
+            # ansible-playbook -i inventories/staging site.yml
           '''
         }
       }
     }
+  }
 
-  } catch (err) {
-    currentBuild.result = 'FAILURE'
-    throw err
-  } finally {
-    def durationSec = ((System.currentTimeMillis() - startMillis) / 1000.0).round(1)
-
-    // On failure: create JIRA issue (one option is a JIRA Pipeline Steps plugin step like jiraNewIssue). [web:30]
-    if (currentBuild.result == 'FAILURE') {
-      try {
-        // Example only; requires Jira plugin config + IDs adjusted.
-        def issue = [fields: [
-          project: [id: '10000'],
-          summary: "Jenkins failure: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-          description: "Branch: ${env.BRANCH_NAME}\nBuild URL: ${env.BUILD_URL}\nFailed stage: ${FAILED_STAGE}\nDuration: ${durationSec}s",
-          issuetype: [id: '10001']
-        ]]
-        jiraNewIssue issue: issue, site: 'your-jira-site'
-      } catch (jiraErr) {
-        echo "JIRA creation failed: ${jiraErr}"
-      }
+  post {
+    always {
+      // Good place to keep logs/artifacts even on failures; junit/archive/publishHTML already done above.
+      echo "Build URL: ${env.BUILD_URL}"
+      echo "Branch: ${env.BRANCH_NAME}"
+      echo "Last stage (best-effort): ${env.STAGE_NAME}"
+      // Note: env.STAGE_NAME in post can show "Declarative: Post Actions", so if you need exact failed stage,
+      // you usually store it yourself per-stage. [web:39]
     }
 
-    // Email notifications (Email Extension plugin supports emailext step). [page:5]
-    emailext(
-      to: 'team@example.com',
-      subject: "${env.JOB_NAME} #${env.BUILD_NUMBER} - ${currentBuild.currentResult}",
-      body: """Build number: ${env.BUILD_NUMBER}
+    failure {
+      // Create JIRA issue (requires Jira plugin + configured site/steps). [web:30]
+      // Example only; adjust IDs/fields to your Jira config.
+      script {
+        try {
+          def issue = [fields: [
+            project: [id: '10000'],
+            summary: "Pipeline failure: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+            description: "Branch: ${env.BRANCH_NAME}\nBuild URL: ${env.BUILD_URL}\n",
+            issuetype: [id: '10001']
+          ]]
+          jiraNewIssue issue: issue, site: 'your-jira-site'
+        } catch (e) {
+          echo "JIRA creation failed: ${e}"
+        }
+      }
+
+      // Email (Email Extension plugin provides emailext). [page:5]
+      emailext(
+        to: 'team@example.com',
+        subject: "${env.JOB_NAME} #${env.BUILD_NUMBER} - FAILURE",
+        body: """Build number: ${env.BUILD_NUMBER}
 Branch name: ${env.BRANCH_NAME}
-Duration: ${durationSec}s
-Failed stage: ${FAILED_STAGE}
+Duration: ${currentBuild.durationString}
+Failed stage: (see Jenkins UI)
 Build URL: ${env.BUILD_URL}
 """
-    )
+      )
 
-    // Optional Slack: if you install Slack plugin, you can call slackSend(message: "...") (example usage exists in common Jenkins pipeline patterns). [web:36]
+      // Optional Slack (requires Slack plugin + slackSend configured).
+      // slackSend(channel: '#ci', message: "FAILURE: ${env.JOB_NAME} #${env.BUILD_NUMBER} ${env.BUILD_URL}")
+    }
   }
 }
