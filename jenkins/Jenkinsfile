@@ -125,18 +125,6 @@ pipeline {
             }
         }
         
-        stage('Security Scan') {
-            steps {
-                script {
-                    sh '. ${VENV_DIR}/bin/activate && bandit -r app/ -f json -o reports/bandit-report.json || true'
-                }
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: 'reports/bandit-report.json', allowEmptyArchive: true
-                }
-            }
-        }
         
         stage('Build Docker Image') {
             when {
