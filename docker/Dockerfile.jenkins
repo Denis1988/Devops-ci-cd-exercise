@@ -13,10 +13,12 @@ RUN apt-get update && \
 
 # 2. Add 'jenkins' user to the docker group so it can run docker commands
 # Note: On some systems, the GID of the docker group must match the host's.
-RUN groupmod -g 130 docker || groupadd -g 130 docker
 RUN usermod -aG docker jenkins
-USER jenkins
+
 # 3. Setup your directory
 RUN mkdir -p /opt/jenkins && chown jenkins:jenkins /opt/jenkins
 WORKDIR /opt/jenkins
 COPY . .
+
+# Switch back to the jenkins user
+USER jenkins
