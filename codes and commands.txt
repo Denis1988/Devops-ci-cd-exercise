@@ -1,0 +1,11 @@
+to create image for jenkins:
+docker build -f docker/Dockerfile.jenkins -t my-jenkins-image .
+
+to run jenkins from image:
+docker run -d -p 8080:8080 -p 5000:5000 --name jenkins -v /var/run/docker.sock:/var/run/docker.sock -v jenkins_data:/var/jenkins_home  my-jenkins-image
+
+to connect running container:
+docker exec -it jenkins /bin/bash
+
+code of jenkins:
+b9cdde2b441c4f3ba0035e030fbcf835

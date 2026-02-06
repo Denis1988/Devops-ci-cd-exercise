@@ -1,0 +1,10 @@
+FROM python:3.13.12-slim
+
+# Set the working directory first
+WORKDIR /opt/DevOps-CI-CD-exercise
+
+# Copy everything into the working directory
+COPY . .
+
+# Install dependencies
+RUN pip3 install --no-cache-dir -r requirements.txt
