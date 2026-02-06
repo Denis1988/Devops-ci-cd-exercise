@@ -44,7 +44,7 @@ pipeline {
             }
             post {
                 always {
-                    sh 'docker rm -f integration-test-app'
+                    sh 'docker rm -f unit-test-app'
                     junit 'reports/unit-tests.xml'
                     publishHTML([
                         allowMissing: false,
@@ -62,11 +62,14 @@ pipeline {
         stage('Integration Tests') {
             steps {
                 script {
+                    sh 'docker build -f docker/Dockerfile.app -t my-temp-app .'
+                    sh 'docker run -d -p 5000:5000 --name integration-test-app my-temp-app'
                     sh '. ${VENV_DIR}/bin/activate && pytest tests/integration/ -v --junit-xml=reports/integration-tests.xml'
                 }
             }
             post {
                 always {
+                    sh 'docker rm -f integration-test-app'
                     junit 'reports/integration-tests.xml'
                 }
             }
@@ -75,6 +78,8 @@ pipeline {
         stage('End-to-End Tests') {
             steps {
                 script {
+                    sh 'docker build -f docker/Dockerfile.app_selenium -t my-temp-app .'
+                    sh 'docker run -d -p 5000:5000 --name e2e-test-app my-temp-app'
                     sh '''
                         . ${VENV_DIR}/bin/activate
                         export DISPLAY=:99
@@ -87,6 +92,7 @@ pipeline {
             }
             post {
                 always {
+                    sh 'docker rm -f e2e-test-app'
                     junit 'reports/e2e-tests.xml'
                 }
             }

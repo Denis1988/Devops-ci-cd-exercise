@@ -6,5 +6,11 @@ WORKDIR /opt/DevOps-CI-CD-exercise
 # Copy everything into the working directory
 COPY . .
 
+# Inform Docker that the container listens on port 5000
+EXPOSE 5000
+
 # Install dependencies
 RUN pip3 install --no-cache-dir -r requirements.txt
+
+# Ensure Flask listens on 0.0.0.0 so it's accessible from outside the container
+CMD ["python3", "-m", "flask", "run", "--host=0.0.0.0", "--port=5000"]

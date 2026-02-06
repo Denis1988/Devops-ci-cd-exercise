@@ -1,16 +1,27 @@
-FROM python:3.13.12-slim
+FROM python:3.13-slim
 
-# Set the working directory first
+# Set the working directory
 WORKDIR /opt/DevOps-CI-CD-exercise
 
-# Copy everything into the working directory
-COPY . .
+# 1. Install system dependencies for Chrome and Selenium
+# We use chromium-driver because it is managed by the OS package manager
+RUN apt-get update && apt-get install -y \
+    chromium \
+    chromium-driver \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies
+# 2. Copy requirements and install
+COPY requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-# Inform Docker that the container listens on port 5000
+# 3. Copy the rest of the app
+COPY . .
+
+# 4. Set environment variables to help Selenium find Chromium
+ENV CHROME_BIN=/usr/bin/chromium
+ENV CHROMEDRIVER_PATH=/usr/bin/chromedriver
+
 EXPOSE 5000
 
-# Ensure Flask listens on 0.0.0.0 so it's accessible from outside the container
+# Standard Flask entry point
 CMD ["python3", "-m", "flask", "run", "--host=0.0.0.0", "--port=5000"]
