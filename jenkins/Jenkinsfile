@@ -36,6 +36,7 @@ pipeline {
         stage('Unit Tests') {
             steps {
                 script {
+                    sh 'docker rm -f unit-test-app'
                     sh 'docker build -f docker/Dockerfile.app -t my-temp-app .'
                     sh 'docker run -d -p 5000:5000 --name unit-test-app my-temp-app'
                     sh 'mkdir -p reports'
@@ -62,6 +63,7 @@ pipeline {
         stage('Integration Tests') {
             steps {
                 script {
+                    sh 'docker rm -f integration-test-app'
                     sh 'docker build -f docker/Dockerfile.app -t my-temp-app .'
                     sh 'docker run -d -p 5000:5000 --name integration-test-app my-temp-app'
                     sh '. ${VENV_DIR}/bin/activate && pytest tests/integration/ -v --junit-xml=reports/integration-tests.xml'
@@ -78,8 +80,7 @@ pipeline {
         stage('End-to-End Tests') {
             steps {
                 script {
-                    // 1. Clean and Build
-                    sh 'docker rm -f e2e-test-app || true'
+                    sh 'docker rm -f e2e-test-app'
                     sh 'docker build -f docker/Dockerfile.app_selenium -t my-temp-app-selenium .'
                     
                     // 2. Run the container
@@ -98,7 +99,7 @@ pipeline {
             }
             post {
                 always {
-                    sh 'docker rm -f e2e-test-app || true'
+                    sh 'docker rm -f e2e-test-app'
                     junit 'reports/e2e-tests.xml'
                 }
             }
