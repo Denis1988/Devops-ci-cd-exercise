@@ -175,8 +175,8 @@ class TestWebInterface:
     
     def test_button_interactions(self, driver, app_server):
         driver.get(app_server)
-        
-        buttons = driver.find_elements(By.TAG_NAME, "button")
+
+        buttons = WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.TAG_NAME, "button")))
         assert len(buttons) >= 6
         
         for button in buttons:
