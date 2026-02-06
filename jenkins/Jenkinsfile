@@ -36,28 +36,28 @@ pipeline {
         stage('Unit Tests') {
             steps {
                 script {
-                    sh 'docker rm -f unit-test-app'
-                    sh 'docker build -f docker/Dockerfile.app -t my-temp-app .'
-                    sh 'docker run -d -p 5000:5000 --name unit-test-app my-temp-app'
-                    sh 'mkdir -p reports'
-                    sh '. ${VENV_DIR}/bin/activate && pytest tests/unit/ -v --cov=app --cov-report=xml --cov-report=html --junit-xml=reports/unit-tests.xml'
-                }
+                sh 'docker rm -f unit-test-app || true'
+                sh 'docker build -f docker/Dockerfile.app -t my-temp-app .'
+                sh 'docker run -d -p 5000:5000 --name unit-test-app my-temp-app'
+                sh 'mkdir -p reports'
+                sh '. ${VENV_DIR}/bin/activate && pytest tests/unit/ -v --cov=app --cov-report=xml --cov-report=html --junit-xml=reports/unit-tests.xml'
+            }
             }
             post {
                 always {
-                    sh 'docker rm -f unit-test-app'
+                    sh 'docker rm -f unit-test-app || true'
                     junit 'reports/unit-tests.xml'
-                    publishHTML([
-                        allowMissing: false,
-                        alwaysLinkToLastBuild: true,
-                        keepAll: true,
-                        reportDir: 'htmlcov',
-                        reportFiles: 'index.html',
-                        reportName: 'Unit Test Coverage Report'
-                    ])
-                    archiveArtifacts artifacts: 'htmlcov/**/*', allowEmptyArchive: false
+                        publishHTML([
+                            allowMissing: false,
+                            alwaysLinkToLastBuild: true,
+                            keepAll: true,
+                            reportDir: 'htmlcov',
+                            reportFiles: 'index.html',
+                            reportName: 'Unit Test Coverage Report'
+                        ])
+                        archiveArtifacts artifacts: 'htmlcov/**/*', allowEmptyArchive: false
+                    }
                 }
-            }
         }
         
         stage('Integration Tests') {
@@ -66,12 +66,13 @@ pipeline {
                     sh 'docker rm -f integration-test-app'
                     sh 'docker build -f docker/Dockerfile.app -t my-temp-app .'
                     sh 'docker run -d -p 5000:5000 --name integration-test-app my-temp-app'
+                    sh 'mkdir -p reports'
                     sh '. ${VENV_DIR}/bin/activate && pytest tests/integration/ -v --junit-xml=reports/integration-tests.xml'
                 }
             }
             post {
                 always {
-                    sh 'docker rm -f integration-test-app'
+                    sh 'docker rm -f integration-test-app || true'
                     junit 'reports/integration-tests.xml'
                 }
             }
@@ -91,6 +92,7 @@ pipeline {
 
                     // 4. THE KEY CHANGE: Run pytest INSIDE the container
                     // We use 'docker exec' to use the container's Python, Chrome, and Driver
+                    sh 'mkdir -p reports'
                     sh 'docker exec e2e-test-app pytest tests/e2e/ -v --junitxml=reports/e2e-tests.xml'
                     
                     // 5. Pull the results out so Jenkins can see the XML report
@@ -99,7 +101,7 @@ pipeline {
             }
             post {
                 always {
-                    sh 'docker rm -f e2e-test-app'
+                    sh 'docker rm -f e2e-test-app || true'
                     junit 'reports/e2e-tests.xml'
                 }
             }
@@ -108,27 +110,18 @@ pipeline {
         stage('Performance Tests') {
             steps {
                 script {
+                    sh 'docker rm -f performance-test-app'
+                    sh 'docker build -f docker/Dockerfile.app_prod -t performance-test-app .'
+                    sh 'docker run -d -p 5000:5000 --name performance-test-app performance-test-app'
                     sh '''
-                        . ${VENV_DIR}/bin/activate
-                        
-                        python app.py &
-                        APP_PID=$!
-                        sleep 5
-                        
-                        locust -f tests/performance/locustfile.py \\
-                            --headless \\
-                            --users 10 \\
-                            --spawn-rate 2 \\
-                            --run-time 30s \\
-                            --host http://localhost:5000 \\
-                            --html reports/performance-report.html
-                        
-                        kill $APP_PID || true
-                    '''
+                        mkdir -p reports
+                        locust -f tests/performance/locustfile.py --headless --users 10 --spawn-rate 2 --run-time 30s --host http://localhost:5000 --html reports/performance-report.html
+                        '''
                 }
             }
             post {
                 always {
+                    sh 'docker rm -f performance-test-app || true'
                     publishHTML([
                         allowMissing: false,
                         alwaysLinkToLastBuild: true,
