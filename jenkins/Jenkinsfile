@@ -136,8 +136,8 @@ pipeline {
             steps {
                 script {
                     // Define your account names
-                    def dockerHubUser = "denis1988@gmail.com"
-                    def githubUser = "Denis1988"
+                    def dockerHubUser = "denis1988"  // Use Docker Hub USERNAME, not email
+                    def githubUser = "denis1988"     // Use lowercase for ghcr.io
                     def repoName = "devops-ci-cd-exercise"
 
                     // 1. Build the local image
@@ -163,6 +163,7 @@ pipeline {
                 }
             }
         }
+
         stage('Deploy to Staging') {
             when {
                 branch 'develop'
