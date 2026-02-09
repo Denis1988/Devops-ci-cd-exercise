@@ -82,9 +82,12 @@ pipeline {
                 script {
                     sh 'docker rm -f e2e-test-app || true'
                     sh 'docker build -f docker/Dockerfile.app_selenium -t my-temp-app-selenium .'
-                    sh 'docker run -d -p 5000:5000 --name e2e-test-app my-temp-app-selenium'
+                    sh 'docker run -d --name e2e-test-app my-temp-app-selenium tail -f /dev/null'
                     sh 'mkdir -p reports'
-                    sh 'docker exec e2e-test-app pytest tests/e2e/ -v --junitxml=reports/e2e-tests.xml'
+                    
+                    // Run pytest inside. Because the port is now free (Flask isn't running yet), 
+                    // your test's run_app thread will succeed and be measured for coverage.
+                    sh 'docker exec e2e-test-app pytest tests/e2e/ -v --cov=app --cov-report=xml --junitxml=reports/e2e-tests.xml'
                     sh 'docker cp e2e-test-app:/opt/DevOps-CI-CD-exercise/reports/e2e-tests.xml reports/e2e-tests.xml || true'
                 }
             }
@@ -93,7 +96,6 @@ pipeline {
                     sh 'docker rm -f e2e-test-app || true'
                     junit 'reports/e2e-tests.xml'
                 }
-            }
         }
         
         stage('Performance Tests') {
