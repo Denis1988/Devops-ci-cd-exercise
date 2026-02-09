@@ -96,6 +96,7 @@ pipeline {
                     sh 'docker rm -f e2e-test-app || true'
                     junit 'reports/e2e-tests.xml'
                 }
+            }
         }
         
         stage('Performance Tests') {
@@ -124,7 +125,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Build and Push Images') {
             when {
                 anyOf {
@@ -135,7 +136,7 @@ pipeline {
             steps {
                 script {
                     // Define your account names
-                    def dockerHubUser = "your-dockerhub-username"
+                    def dockerHubUser = "denis1988@gmail.com"
                     def githubUser = "your-github-username"
                     def repoName = "devops-ci-cd-exercise"
 
