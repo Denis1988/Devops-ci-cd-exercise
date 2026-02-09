@@ -137,7 +137,7 @@ pipeline {
                 script {
                     // Define your account names
                     def dockerHubUser = "denis1988@gmail.com"
-                    def githubUser = "your-github-username"
+                    def githubUser = "Denis1988"
                     def repoName = "devops-ci-cd-exercise"
 
                     // 1. Build the local image
