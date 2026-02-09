@@ -181,6 +181,11 @@ pipeline {
                     """,
                     to: "${env.CHANGE_AUTHOR_EMAIL}"
                 )
+                post {
+        always {
+            cleanWs()
+        }
+    }
             }
         }
         failure {
@@ -201,6 +206,11 @@ pipeline {
                     to: "${env.CHANGE_AUTHOR_EMAIL}"
                 )
             }
+                            post {
+        always {
+            cleanWs()
+        }
+    }
         }
     }
     cleanWs()
