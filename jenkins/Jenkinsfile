@@ -10,10 +10,10 @@ pipeline {
         stage('Setup Environment') {
             steps {
                 script {
-                    sh 'echo "Setting up Python environment"' [cite: 2]
-                    sh "python${PYTHON_VERSION} -m venv ${VENV_DIR}" [cite: 1]
-                    sh ". ${VENV_DIR}/bin/activate && pip install --upgrade pip" [cite: 3]
-                    sh ". ${VENV_DIR}/bin/activate && pip install -r requirements.txt" [cite: 4]
+                    sh 'echo "Setting up Python environment"'
+                    sh "python${PYTHON_VERSION} -m venv ${VENV_DIR}"
+                    sh ". ${VENV_DIR}/bin/activate && pip install --upgrade pip"
+                    sh ". ${VENV_DIR}/bin/activate && pip install -r requirements.txt"
                 }
             }
         }
@@ -21,13 +21,13 @@ pipeline {
         stage('Lint Code') {
             steps {
                 script {
-                    sh ". ${VENV_DIR}/bin/activate && flake8 app/ --output-file=reports/flake8.txt || true" [cite: 5, 6]
-                    sh ". ${VENV_DIR}/bin/activate && pylint app/ --output=reports/pylint.txt || true" [cite: 7]
+                    sh ". ${VENV_DIR}/bin/activate && flake8 app/ --output-file=reports/flake8.txt || true"
+                    sh ". ${VENV_DIR}/bin/activate && pylint app/ --output=reports/pylint.txt || true"
                 }
             }
             post {
                 always {
-                    archiveArtifacts artifacts: 'reports/*.txt', allowEmptyArchive: true [cite: 8]
+                    archiveArtifacts artifacts: 'reports/*.txt', allowEmptyArchive: true
                 }
             }
         }
@@ -35,26 +35,26 @@ pipeline {
         stage('Unit Tests') {
             steps {
                 script {
-                    sh 'docker rm -f unit-test-app || true' [cite: 9]
-                    sh 'docker build -f docker/Dockerfile.app -t my-temp-app .' [cite: 1]
-                    sh 'docker run -d -p 5000:5000 --name unit-test-app my-temp-app' [cite: 10]
+                    sh 'docker rm -f unit-test-app || true'
+                    sh 'docker build -f docker/Dockerfile.app -t my-temp-app .'
+                    sh 'docker run -d -p 5000:5000 --name unit-test-app my-temp-app'
                     sh 'mkdir -p reports'
-                    sh ". ${VENV_DIR}/bin/activate && pytest tests/unit/ -v --cov=app --cov-report=xml --cov-report=html --junit-xml=reports/unit-tests.xml" [cite: 11]
+                    sh ". ${VENV_DIR}/bin/activate && pytest tests/unit/ -v --cov=app --cov-report=xml --cov-report=html --junit-xml=reports/unit-tests.xml"
                 }
             }
             post {
                 always {
-                    sh 'docker rm -f unit-test-app || true' [cite: 12]
-                    junit 'reports/unit-tests.xml' [cite: 12]
+                    sh 'docker rm -f unit-test-app || true'
+                    junit 'reports/unit-tests.xml'
                     publishHTML([
                         allowMissing: false,
-                        alwaysLinkToLastBuild: true, [cite: 13]
+                        alwaysLinkToLastBuild: true,
                         keepAll: true,
                         reportDir: 'htmlcov',
                         reportFiles: 'index.html',
-                        reportName: 'Unit Test Coverage Report' [cite: 14]
+                        reportName: 'Unit Test Coverage Report'
                     ])
-                    archiveArtifacts artifacts: 'htmlcov/**/*', allowEmptyArchive: false [cite: 14]
+                    archiveArtifacts artifacts: 'htmlcov/**/*', allowEmptyArchive: false
                 }
             }
         }
@@ -62,17 +62,17 @@ pipeline {
         stage('Integration Tests') {
             steps {
                 script {
-                    sh 'docker rm -f integration-test-app || true' [cite: 16]
-                    sh 'docker build -f docker/Dockerfile.app -t my-temp-app .' [cite: 16]
-                    sh 'docker run -d -p 5000:5000 --name integration-test-app my-temp-app' [cite: 17]
+                    sh 'docker rm -f integration-test-app || true'
+                    sh 'docker build -f docker/Dockerfile.app -t my-temp-app .'
+                    sh 'docker run -d -p 5000:5000 --name integration-test-app my-temp-app'
                     sh 'mkdir -p reports'
-                    sh ". ${VENV_DIR}/bin/activate && pytest tests/integration/ -v --junit-xml=reports/integration-tests.xml" [cite: 18]
+                    sh ". ${VENV_DIR}/bin/activate && pytest tests/integration/ -v --junit-xml=reports/integration-tests.xml"
                 }
             }
             post {
                 always {
-                    sh 'docker rm -f integration-test-app || true' [cite: 19]
-                    junit 'reports/integration-tests.xml' [cite: 19]
+                    sh 'docker rm -f integration-test-app || true'
+                    junit 'reports/integration-tests.xml'
                 }
             }
         }
@@ -80,18 +80,18 @@ pipeline {
         stage('End-to-End Tests') {
             steps {
                 script {
-                    sh 'docker rm -f e2e-test-app || true' [cite: 20]
-                    sh 'docker build -f docker/Dockerfile.app_selenium -t my-temp-app-selenium .' [cite: 20]
-                    sh 'docker run -d -p 5000:5000 --name e2e-test-app my-temp-app-selenium' [cite: 21]
+                    sh 'docker rm -f e2e-test-app || true'
+                    sh 'docker build -f docker/Dockerfile.app_selenium -t my-temp-app-selenium .'
+                    sh 'docker run -d -p 5000:5000 --name e2e-test-app my-temp-app-selenium'
                     sh 'mkdir -p reports'
-                    sh 'docker exec e2e-test-app pytest tests/e2e/ -v --junitxml=reports/e2e-tests.xml' [cite: 21]
-                    sh 'docker cp e2e-test-app:/opt/DevOps-CI-CD-exercise/reports/e2e-tests.xml reports/e2e-tests.xml || true' [cite: 22]
+                    sh 'docker exec e2e-test-app pytest tests/e2e/ -v --junitxml=reports/e2e-tests.xml'
+                    sh 'docker cp e2e-test-app:/opt/DevOps-CI-CD-exercise/reports/e2e-tests.xml reports/e2e-tests.xml || true'
                 }
             }
             post {
                 always {
-                    sh 'docker rm -f e2e-test-app || true' [cite: 23]
-                    junit 'reports/e2e-tests.xml' [cite: 23]
+                    sh 'docker rm -f e2e-test-app || true'
+                    junit 'reports/e2e-tests.xml'
                 }
             }
         }
@@ -99,24 +99,24 @@ pipeline {
         stage('Performance Tests') {
             steps {
                 script {
-                    sh 'docker rm -f performance-test-app || true' [cite: 24]
-                    sh 'docker build -f docker/Dockerfile.app_prod -t performance-test-app .' [cite: 24]
-                    sh 'docker run -d -p 5000:5000 --name performance-test-app performance-test-app' [cite: 25]
+                    sh 'docker rm -f performance-test-app || true'
+                    sh 'docker build -f docker/Dockerfile.app_prod -t performance-test-app .'
+                    sh 'docker run -d -p 5000:5000 --name performance-test-app performance-test-app'
                     sh 'mkdir -p reports'
-                    sh "locust -f tests/performance/locustfile.py --headless --users 10 --spawn-rate 2 --run-time 30s --host http://localhost:5000 --html reports/performance-report.html" [cite: 25]
+                    sh "locust -f tests/performance/locustfile.py --headless --users 10 --spawn-rate 2 --run-time 30s --host http://localhost:5000 --html reports/performance-report.html"
                 }
             }
             post {
                 always {
-                    sh 'docker rm -f performance-test-app || true' [cite: 27]
+                    sh 'docker rm -f performance-test-app || true'
                     publishHTML([
                         allowMissing: false,
                         alwaysLinkToLastBuild: true,
                         keepAll: true,
-                        reportDir: 'reports', [cite: 28]
+                        reportDir: 'reports',
                         reportFiles: 'performance-report.html',
                         reportName: 'Performance Test Report'
-                    ]) [cite: 29]
+                    ])
                 }
             }
         }
@@ -124,15 +124,15 @@ pipeline {
         stage('Build Docker Image') {
             when {
                 anyOf {
-                    branch 'main' [cite: 30]
-                    branch 'develop' [cite: 30]
+                    branch 'main'
+                    branch 'develop'
                 }
             }
             steps {
                 script {
                     sh """
-                        docker build -t devops-testing-app:${BUILD_NUMBER} . [cite: 31]
-                        docker tag devops-testing-app:${BUILD_NUMBER} devops-testing-app:latest [cite: 32]
+                        docker build -t devops-testing-app:${BUILD_NUMBER} .
+                        docker tag devops-testing-app:${BUILD_NUMBER} devops-testing-app:latest
                     """
                 }
             }
@@ -140,17 +140,17 @@ pipeline {
         
         stage('Deploy to Staging') {
             when {
-                branch 'develop' [cite: 33]
+                branch 'develop'
             }
             steps {
                 script {
                     sh '''
                         echo "Deploying to staging environment"
-                        docker stop staging-app || true [cite: 34, 35]
-                        docker rm staging-app || true [cite: 36]
+                        docker stop staging-app || true
+                        docker rm staging-app || true
                         docker run -d --name staging-app -p 5001:5000 devops-testing-app:${BUILD_NUMBER}
                         sleep 5
-                        curl -f http://localhost:5001/health || exit 1 [cite: 37]
+                        curl -f http://localhost:5001/health || exit 1
                     '''
                 }
             }
@@ -159,21 +159,21 @@ pipeline {
     
     post {
         always {
-            cleanWs() [cite: 38]
+            cleanWs()
         }
         success {
             script {
-                sh 'echo "Pipeline completed successfully!"' [cite: 39]
+                sh 'echo "Pipeline completed successfully!"'
                 emailext (
                     subject: "✅ Pipeline Success: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
                     body: """
                         <p>The pipeline completed successfully!</p>
                         <ul>
-                            <li><strong>Build:</strong> ${env.BUILD_NUMBER}</li> [cite: 39]
-                            <li><strong>Branch:</strong> ${env.BRANCH_NAME}</li> [cite: 40]
-                            <li><strong>Duration:</strong> ${currentBuild.durationString}</li> [cite: 40]
+                            <li><strong>Build:</strong> ${env.BUILD_NUMBER}</li>
+                            <li><strong>Branch:</strong> ${env.BRANCH_NAME}</li>
+                            <li><strong>Duration:</strong> ${currentBuild.durationString}</li>
                             <li><strong>Reports:</strong> Check the artifacts section</li>
-                        </ul> [cite: 41]
+                        </ul>
                         <p><a href="${env.BUILD_URL}">View Build Details</a></p>
                     """,
                     to: "${env.CHANGE_AUTHOR_EMAIL}"
@@ -182,19 +182,19 @@ pipeline {
         }
         failure {
             script {
-                sh 'echo "Pipeline failed!"' [cite: 43]
+                sh 'echo "Pipeline failed!"'
                 emailext (
                     subject: "❌ Pipeline Failure: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
                     body: """
-                        <p>The pipeline failed!</p> [cite: 44]
+                        <p>The pipeline failed!</p>
                         <ul>
-                            <li><strong>Build:</strong> ${env.BUILD_NUMBER}</li> [cite: 44]
-                            <li><strong>Branch:</strong> ${env.BRANCH_NAME}</li> [cite: 45]
-                            <li><strong>Duration:</strong> ${currentBuild.durationString}</li> [cite: 45]
+                            <li><strong>Build:</strong> ${env.BUILD_NUMBER}</li>
+                            <li><strong>Branch:</strong> ${env.BRANCH_NAME}</li>
+                            <li><strong>Duration:</strong> ${currentBuild.durationString}</li>
                             <li><strong>Failed Stage:</strong> ${currentBuild.currentResult}</li>
                         </ul>
                         <p><a href="${env.BUILD_URL}">View Build Details</a></p>
-                    """, [cite: 46]
+                    """,
                     to: "${env.CHANGE_AUTHOR_EMAIL}"
                 )
             }
