@@ -125,7 +125,7 @@ pipeline {
             }
         }
         
-        stage('Build Docker Image') {
+        stage('Build and Push Images') {
             when {
                 anyOf {
                     branch 'main'
@@ -134,14 +134,34 @@ pipeline {
             }
             steps {
                 script {
-                    sh """
-                        docker build -t devops-testing-app:${BUILD_NUMBER} .
-                        docker tag devops-testing-app:${BUILD_NUMBER} devops-testing-app:latest
-                    """
+                    // Define your account names
+                    def dockerHubUser = "your-dockerhub-username"
+                    def githubUser = "your-github-username"
+                    def repoName = "devops-ci-cd-exercise"
+
+                    // 1. Build the local image
+                    sh "docker build -t ${repoName}:${BUILD_NUMBER} ."
+
+                    // 2. Push to Docker Hub
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', passwordVariable: 'DOCKER_HUB_PASSWORD', usernameVariable: 'DOCKER_HUB_USER')]) {
+                        sh "echo \$DOCKER_HUB_PASSWORD | docker login -u \$DOCKER_HUB_USER --password-stdin"
+                        sh "docker tag ${repoName}:${BUILD_NUMBER} ${dockerHubUser}/${repoName}:${BUILD_NUMBER}"
+                        sh "docker tag ${repoName}:${BUILD_NUMBER} ${dockerHubUser}/${repoName}:latest" [cite: 32]
+                        sh "docker push ${dockerHubUser}/${repoName}:${BUILD_NUMBER}"
+                        sh "docker push ${dockerHubUser}/${repoName}:latest"
+                    }
+
+                    // 3. Push to GitHub Container Registry (ghcr.io)
+                    withCredentials([usernamePassword(credentialsId: 'github-creds', passwordVariable: 'GH_PAT', usernameVariable: 'GH_USER')]) {
+                        sh "echo \$GH_PAT | docker login ghcr.io -u \$GH_USER --password-stdin"
+                        sh "docker tag ${repoName}:${BUILD_NUMBER} ghcr.io/${githubUser}/${repoName}:${BUILD_NUMBER}"
+                        sh "docker tag ${repoName}:${BUILD_NUMBER} ghcr.io/${githubUser}/${repoName}:latest"
+                        sh "docker push ghcr.io/${githubUser}/${repoName}:${BUILD_NUMBER}"
+                        sh "docker push ghcr.io/${githubUser}/${repoName}:latest"
+                    }
                 }
             }
         }
-        
         stage('Deploy to Staging') {
             when {
                 branch 'develop'
