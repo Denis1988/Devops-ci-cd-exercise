@@ -103,7 +103,7 @@ pipeline {
                     sh 'docker build -f docker/Dockerfile.app_prod -t performance-test-app .'
                     sh 'docker run -d -p 5000:5000 --name performance-test-app performance-test-app'
                     sh 'mkdir -p reports'
-                    sh "locust -f tests/performance/locustfile.py --headless --users 10 --spawn-rate 2 --run-time 30s --host http://localhost:5000 --html reports/performance-report.html"
+                    sh "locust -f tests/performance/locustfile.py --headless --users 10 --spawn-rate 2 --run-time 30s --host http://performance-test-app:5000 --html reports/performance-report.html"
                 }
             }
             post {
