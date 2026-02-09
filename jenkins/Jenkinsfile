@@ -147,7 +147,7 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', passwordVariable: 'DOCKER_HUB_PASSWORD', usernameVariable: 'DOCKER_HUB_USER')]) {
                         sh "echo \$DOCKER_HUB_PASSWORD | docker login -u \$DOCKER_HUB_USER --password-stdin"
                         sh "docker tag ${repoName}:${BUILD_NUMBER} ${dockerHubUser}/${repoName}:${BUILD_NUMBER}"
-                        sh "docker tag ${repoName}:${BUILD_NUMBER} ${dockerHubUser}/${repoName}:latest" [cite: 32]
+                        sh "docker tag ${repoName}:${BUILD_NUMBER} ${dockerHubUser}/${repoName}:latest"
                         sh "docker push ${dockerHubUser}/${repoName}:${BUILD_NUMBER}"
                         sh "docker push ${dockerHubUser}/${repoName}:latest"
                     }
