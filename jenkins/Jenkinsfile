@@ -141,12 +141,13 @@ pipeline {
                 script {
                     def dockerHubUser = "denis20"
                     def githubUser    = "denis1988"
-                    def repoName      = "devops-ci-cd-exercise"
+                    // Standardize the name to avoid mismatches
+                    def repoName      = "devops-ci-cd-exercise" 
 
-                    // Build the local image first
+                    // Build the local image
                     sh "docker build -f docker/Dockerfile.app_prod -t ${repoName}:${env.BUILD_NUMBER} ."
 
-                    // Docker Hub Login and Push
+                    // Docker Hub
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', 
                                                     passwordVariable: 'DOCKER_HUB_PASSWORD', 
                                                     usernameVariable: 'DOCKER_HUB_USER')]) {
@@ -159,15 +160,10 @@ pipeline {
                         """
                     }
 
+                    // GitHub Container Registry (ensure repoName is lowercase for GHCR)
                     withCredentials([usernamePassword(credentialsId: 'github-creds', 
                                                     passwordVariable: 'GH_PAT', 
                                                     usernameVariable: 'GH_USER')]) {
-                                                        
-                            // This will return exit code 0 if correct, or fail the build if wrong
-                            sh "echo \$GH_PAT | docker login ghcr.io -u \$GH_USER --password-stdin"
-                            echo "Successfully authenticated with GitHub Registry!"
-
-
                         sh """
                             echo \$GH_PAT | docker login ghcr.io -u \$GH_USER --password-stdin
                             docker tag ${repoName}:${env.BUILD_NUMBER} ghcr.io/${githubUser}/${repoName}:${env.BUILD_NUMBER}
@@ -179,6 +175,7 @@ pipeline {
                 }
             }
         }
+
 
         stage('Deploy to Staging') {
             when {
