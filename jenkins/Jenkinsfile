@@ -137,36 +137,35 @@ pipeline {
         }
 
         stage('Build and Push Images') {
-        steps {
-            script {
-            def dockerHubUser = "denis1988"
-            def githubUser    = "denis1988"
-            def repoName      = "devops-ci-cd-exercise"
+            steps {
+                script {
+                    def dockerHubUser = "denis20"
+                    def githubUser    = "denis1988"
+                    def repoName      = "devops-ci-cd-exercise"
 
-            // Build with the correct Dockerfile
-            sh "docker build -f docker/Dockerfile.app_prod -t ${repoName}:${BUILD_NUMBER} ."
+                    sh "docker build -f docker/Dockerfile.app_prod -t ${repoName}:${BUILD_NUMBER} ."
 
-            withCredentials([usernamePassword(credentialsId: 'dockerhub-creds',
-                                                passwordVariable: 'DOCKER_HUB_PASSWORD',
-                                                usernameVariable: 'DOCKER_HUB_USER')]) {
-                sh "echo \\$DOCKER_HUB_PASSWORD | docker login -u \\$DOCKER_HUB_USER --password-stdin"
-                sh "docker tag ${repoName}:${BUILD_NUMBER} ${dockerHubUser}/${repoName}:${BUILD_NUMBER}"
-                sh "docker tag ${repoName}:${BUILD_NUMBER} ${dockerHubUser}/${repoName}:latest"
-                sh "docker push ${dockerHubUser}/${repoName}:${BUILD_NUMBER}"
-                sh "docker push ${dockerHubUser}/${repoName}:latest"
-            }
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', 
+                                                    passwordVariable: 'DOCKER_HUB_PASSWORD', 
+                                                    usernameVariable: 'DOCKER_HUB_USER')]) {
+                        sh "echo \$DOCKER_HUB_PASSWORD | docker login -u \$DOCKER_HUB_USER --password-stdin"
+                        sh "docker tag ${repoName}:${BUILD_NUMBER} ${dockerHubUser}/${repoName}:${BUILD_NUMBER}"
+                        sh "docker tag ${repoName}:${BUILD_NUMBER} ${dockerHubUser}/${repoName}:latest"
+                        sh "docker push ${dockerHubUser}/${repoName}:${BUILD_NUMBER}"
+                        sh "docker push ${dockerHubUser}/${repoName}:latest"
+                    }
 
-            withCredentials([usernamePassword(credentialsId: 'github-creds',
-                                                passwordVariable: 'GH_PAT',
-                                                usernameVariable: 'GH_USER')]) {
-                sh "echo \\$GH_PAT | docker login ghcr.io -u \\$GH_USER --password-stdin"
-                sh "docker tag ${repoName}:${BUILD_NUMBER} ghcr.io/${githubUser}/${repoName}:${BUILD_NUMBER}"
-                sh "docker tag ${repoName}:${BUILD_NUMBER} ghcr.io/${githubUser}/${repoName}:latest"
-                sh "docker push ghcr.io/${githubUser}/${repoName}:${BUILD_NUMBER}"
-                sh "docker push ghcr.io/${githubUser}/${repoName}:latest"
+                    withCredentials([usernamePassword(credentialsId: 'github-creds', 
+                                                    passwordVariable: 'GH_PAT', 
+                                                    usernameVariable: 'GH_USER')]) {
+                        sh "echo \$GH_PAT | docker login ghcr.io -u \$GH_USER --password-stdin"
+                        sh "docker tag ${repoName}:${BUILD_NUMBER} ghcr.io/${githubUser}/${repoName}:${BUILD_NUMBER}"
+                        sh "docker tag ${repoName}:${BUILD_NUMBER} ghcr.io/${githubUser}/${repoName}:latest"
+                        sh "docker push ghcr.io/${githubUser}/${repoName}:${BUILD_NUMBER}"
+                        sh "docker push ghcr.io/${githubUser}/${repoName}:latest"
+                    }
+                }
             }
-            }
-        }
         }
 
 
