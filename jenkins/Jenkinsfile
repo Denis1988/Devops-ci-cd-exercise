@@ -84,7 +84,6 @@ pipeline {
             sh 'docker build -f docker/Dockerfile.app_selenium -t my-temp-app-selenium .'
             sh 'docker run -d --name e2e-test-app my-temp-app-selenium tail -f /dev/null'
 
-            // Run pytest inside container (NO --headless on pytest; make it an env/config concern)
             sh '''
                 docker exec \
                 -e HEADLESS=true \
@@ -97,7 +96,6 @@ pipeline {
                     --junit-xml=reports/e2e-tests.xml
             '''
 
-            // Copy report out (don’t hide failures here)
             sh 'mkdir -p reports'
             sh 'docker cp e2e-test-app:/opt/DevOps-CI-CD-exercise/reports/e2e-tests.xml reports/e2e-tests.xml'
             }
@@ -147,7 +145,7 @@ pipeline {
                     def repoName = "devops-ci-cd-exercise"
 
                     // 1. Build the local image
-                    sh "docker build -t ${repoName}:${BUILD_NUMBER} ."
+                    sh "docker build -f docker/Dockerfile.app_prod -t ${repoName}:${BUILD_NUMBER} ."
 
                     // 2. Push to Docker Hub
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', passwordVariable: 'DOCKER_HUB_PASSWORD', usernameVariable: 'DOCKER_HUB_USER')]) {
