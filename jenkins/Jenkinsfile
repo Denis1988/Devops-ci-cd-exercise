@@ -163,6 +163,10 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'github-creds', 
                                                     passwordVariable: 'GH_PAT', 
                                                     usernameVariable: 'GH_USER')]) {
+                            // This will return exit code 0 if correct, or fail the build if wrong
+                            sh "echo \$GH_PAT | docker login ghcr.io -u \$GH_USER --password-stdin"
+                            echo "Successfully authenticated with GitHub Registry!"
+                        }
                         sh """
                             echo \$GH_PAT | docker login ghcr.io -u \$GH_USER --password-stdin
                             docker tag ${repoName}:${env.BUILD_NUMBER} ghcr.io/${githubUser}/${repoName}:${env.BUILD_NUMBER}
