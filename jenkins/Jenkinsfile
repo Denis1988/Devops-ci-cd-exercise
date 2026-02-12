@@ -136,47 +136,44 @@ pipeline {
             }
         }
 
-stage('Build and Push Images') {
+            stage('Build and Push Images') {
             steps {
                 script {
-                    // Constants - ensuring these are lowercase for GHCR compatibility
                     def dockerHubUser = "denis20"
                     def githubUser    = "denis1988"
-                    def repoName      = "devops-ci-cd-exercise".toLowerCase() 
-                    def localImage    = "${repoName}:${env.BUILD_NUMBER}"
+                    def repoName      = "devops-ci-cd-exercise"
 
-                    // 1. Build the image once locally
-                    sh "docker build -f docker/Dockerfile.app_prod -t ${localImage} ." [cite: 32]
+                    // Build the local image first
+                    sh "docker build -f docker/Dockerfile.app_prod -t ${repoName}:${env.BUILD_NUMBER} ."
 
-                    // 2. Docker Hub Push
+                    // Docker Hub Login and Push
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', 
                                                     passwordVariable: 'DOCKER_HUB_PASSWORD', 
-                                                    usernameVariable: 'DOCKER_HUB_USER')]) { [cite: 33, 34]
+                                                    usernameVariable: 'DOCKER_HUB_USER')]) {
                         sh """
                             echo \$DOCKER_HUB_PASSWORD | docker login -u \$DOCKER_HUB_USER --password-stdin
-                            docker tag ${localImage} ${dockerHubUser}/${repoName}:${env.BUILD_NUMBER}
-                            docker tag ${localImage} ${dockerHubUser}/${repoName}:latest
+                            docker tag ${repoName}:${env.BUILD_NUMBER} ${dockerHubUser}/${repoName}:${env.BUILD_NUMBER}
+                            docker tag ${repoName}:${env.BUILD_NUMBER} ${dockerHubUser}/${repoName}:latest
                             docker push ${dockerHubUser}/${repoName}:${env.BUILD_NUMBER}
                             docker push ${dockerHubUser}/${repoName}:latest
-                        """ [cite: 35]
+                        """
                     }
 
-                    // 3. GitHub Container Registry (GHCR) Push
+                    // GitHub Container Registry Login and Push
                     withCredentials([usernamePassword(credentialsId: 'github-creds', 
                                                     passwordVariable: 'GH_PAT', 
-                                                    usernameVariable: 'GH_USER')]) { [cite: 36, 37]
+                                                    usernameVariable: 'GH_USER')]) {
                         sh """
                             echo \$GH_PAT | docker login ghcr.io -u \$GH_USER --password-stdin
-                            docker tag ${localImage} ghcr.io/${githubUser}/${repoName}:${env.BUILD_NUMBER}
-                            docker tag ${localImage} ghcr.io/${githubUser}/${repoName}:latest
+                            docker tag ${repoName}:${env.BUILD_NUMBER} ghcr.io/${githubUser}/${repoName}:${env.BUILD_NUMBER}
+                            docker tag ${repoName}:${env.BUILD_NUMBER} ghcr.io/${githubUser}/${repoName}:latest
                             docker push ghcr.io/${githubUser}/${repoName}:${env.BUILD_NUMBER}
                             docker push ghcr.io/${githubUser}/${repoName}:latest
-                        """ [cite: 38, 39]
+                        """
                     }
                 }
             }
         }
-
 
         stage('Deploy to Staging') {
             when {
