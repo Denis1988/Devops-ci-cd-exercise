@@ -4,6 +4,7 @@ pipeline {
     environment {
         PYTHON_VERSION = '3'
         VENV_DIR = 'venv'
+        branch = 'main'
     }
     
     stages {
