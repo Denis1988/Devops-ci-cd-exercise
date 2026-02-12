@@ -78,23 +78,38 @@ pipeline {
         }
         
         stage('End-to-End Tests') {
-            steps {
-                script {
-                    sh 'docker rm -f e2e-test-app || true'
-                    sh 'docker build -f docker/Dockerfile.app_selenium -t my-temp-app-selenium .'
-                    sh 'docker run -d --name e2e-test-app my-temp-app-selenium tail -f /dev/null'
-                    sh 'mkdir -p reports'
-                    sh 'docker exec e2e-test-app pytest tests/e2e/ -v --headless --cov=app --cov-report=xml --junitxml=reports/e2e-tests.xml'
-                    //sh 'docker cp e2e-test-app:/opt/DevOps-CI-CD-exercise/reports/e2e-tests.xml reports/e2e-tests.xml || true'
-                }
-            }
-            post {
-                always {
-                    sh 'docker rm -f e2e-test-app || true'
-                    junit 'reports/e2e-tests.xml'
-                }
+        steps {
+            script {
+            sh 'docker rm -f e2e-test-app || true'
+            sh 'docker build -f docker/Dockerfile.app_selenium -t my-temp-app-selenium .'
+            sh 'docker run -d --name e2e-test-app my-temp-app-selenium tail -f /dev/null'
+
+            // Run pytest inside container (NO --headless on pytest; make it an env/config concern)
+            sh '''
+                docker exec \
+                -e HEADLESS=true \
+                -e CI=true \
+                -e PYTHONUNBUFFERED=1 \
+                -e DISPLAY= \
+                e2e-test-app \
+                pytest tests/e2e/ -v \
+                    --cov=app --cov-report=xml \
+                    --junit-xml=reports/e2e-tests.xml
+            '''
+
+            // Copy report out (don’t hide failures here)
+            sh 'mkdir -p reports'
+            sh 'docker cp e2e-test-app:/opt/DevOps-CI-CD-exercise/reports/e2e-tests.xml reports/e2e-tests.xml'
             }
         }
+        post {
+            always {
+            sh 'docker rm -f e2e-test-app || true'
+            junit 'reports/e2e-tests.xml'
+            }
+        }
+        }
+
         
         stage('Performance Tests') {
             steps {
