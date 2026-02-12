@@ -4,7 +4,6 @@ pipeline {
     environment {
         PYTHON_VERSION = '3'
         VENV_DIR = 'venv'
-        branch = 'main'
     }
     
     stages {
@@ -85,11 +84,8 @@ pipeline {
                     sh 'docker build -f docker/Dockerfile.app_selenium -t my-temp-app-selenium .'
                     sh 'docker run -d --name e2e-test-app my-temp-app-selenium tail -f /dev/null'
                     sh 'mkdir -p reports'
-                    
-                    // Run pytest inside. Because the port is now free (Flask isn't running yet), 
-                    // your test's run_app thread will succeed and be measured for coverage.
-                    sh 'docker exec e2e-test-app pytest tests/e2e/ -v --cov=app --cov-report=xml --junitxml=reports/e2e-tests.xml'
-                    sh 'docker cp e2e-test-app:/opt/DevOps-CI-CD-exercise/reports/e2e-tests.xml reports/e2e-tests.xml || true'
+                    sh 'docker exec e2e-test-app pytest tests/e2e/ -v --headless --cov=app --cov-report=xml --junitxml=reports/e2e-tests.xml'
+                    //sh 'docker cp e2e-test-app:/opt/DevOps-CI-CD-exercise/reports/e2e-tests.xml reports/e2e-tests.xml || true'
                 }
             }
             post {
@@ -108,7 +104,7 @@ pipeline {
                     sh 'docker run -d -p 5000:5000 --name performance-test-app performance-test-app'
                     sh 'mkdir -p reports'
                     sh "docker exec performance-test-app locust -f tests/performance/locustfile.py --headless --users 10 --spawn-rate 2 --run-time 30s --host http://localhost:5000 --html reports/performance-report.html"
-                    sh 'docker cp performance-test-app:/opt/DevOps-CI-CD-exercise/reports/performance-report.html reports/performance-report.html || true'
+                    //sh 'docker cp performance-test-app:/opt/DevOps-CI-CD-exercise/reports/performance-report.html reports/performance-report.html || true'
                     //sh 'locust -f locustfile.py --headless --users 10 --spawn-rate 2 --run-time 30s --host http://localhost:5000 --html reports/performance-report.html'
                 }
             }
@@ -128,11 +124,6 @@ pipeline {
         }
 
         stage('Build and Push Images') {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'develop'
-                }
             }
             steps {
                 script {
