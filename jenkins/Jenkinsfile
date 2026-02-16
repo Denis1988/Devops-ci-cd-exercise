@@ -4,6 +4,7 @@ pipeline {
     environment {
         PYTHON_VERSION = '3'
         VENV_DIR = 'venv'
+        RESPONSE_EMAIL = 'denis1988@gmail.com'
     }
     
     stages {
@@ -212,7 +213,7 @@ pipeline {
                         </ul>
                         <p><a href="${env.BUILD_URL}">View Build Details</a></p>
                     """,
-                    to: "${env.CHANGE_AUTHOR_EMAIL}"
+                    to: "${RESPONSE_EMAIL}"
                 )
             }
         }
@@ -231,7 +232,7 @@ pipeline {
                         </ul>
                         <p><a href="${env.BUILD_URL}">View Build Details</a></p>
                     """,
-                    to: "${env.CHANGE_AUTHOR_EMAIL}"
+                    to: "${RESPONSE_EMAIL}"
                 )
             }
         }
