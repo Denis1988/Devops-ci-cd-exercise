@@ -213,6 +213,12 @@ pipeline {
                             # Connect using the identity file (-i)
                             ssh -i ${PEM_KEY} -o StrictHostKeyChecking=no ubuntu@${ec2Ip} << 'EOF'
                                 echo "Connected to EC2 successfully!"
+                                sudo apt update
+                                sudo apt upgrade -y
+                                sudo apt install docker.io -y
+                                sudo systemctl start docker
+                                sudo systemctl enable docker
+                                sudo usermod -aG docker ubuntu
                                 docker pull ${dockerHubUser}/${repoName}:latest
                                 docker stop staging-app || true
                                 docker rm staging-app || true
