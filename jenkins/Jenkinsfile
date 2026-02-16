@@ -199,38 +199,47 @@ pipeline {
         }
 
             stage('Deploy to Staging') {
-            steps {
-                script {
-                    def ec2Ip = "34.216.141.130"
-                    def dockerHubUser = "denis20"
-                    def repoName = "devops-ci-cd-exercise" 
+    steps {
+        script {
+            def ec2Ip = "34.216.141.130"
+            def dockerHubUser = "denis20"
+            def repoName = "devops-ci-cd-exercise" 
 
-                    withCredentials([file(credentialsId: 'my-aws-key', variable: 'PEM_KEY')]) {
-                        sh """
-                            # Change permissions of the temp key file so SSH doesn't complain
-                            chmod 400 ${PEM_KEY}
-                            
-                            # Connect using the identity file (-i)
-                            ssh -i ${PEM_KEY} -o StrictHostKeyChecking=no ubuntu@${ec2Ip} << 'EOF'
-                                echo "Connected to EC2 successfully!"
-                                sudo apt update
-                                sudo apt upgrade -y
-                                sudo apt install docker.io -y
-                                sudo systemctl start docker
-                                sudo systemctl enable docker
-                                sudo usermod -aG docker ubuntu
-                                docker pull ${dockerHubUser}/${repoName}:latest
-                                docker stop staging-app || true
-                                docker rm staging-app || true
-                                docker run -d --name staging-app -p 5000:5000 ${dockerHubUser}/${repoName}:latest
-                                sleep 5
-                                curl -f http://localhost:5000/health || exit 1
-                                EOF
-                        """
-                    }
-                }
+            withCredentials([file(credentialsId: 'my-aws-key', variable: 'PEM_KEY')]) {
+                // Use single quotes (''') for the sh block to fix the "Insecure Interpolation" warning
+                sh '''
+                    chmod 400 $PEM_KEY
+                    
+                    ssh -i $PEM_KEY -o StrictHostKeyChecking=no ubuntu@34.216.141.130 << 'EOF'
+                        echo "Connected to EC2 successfully!"
+                        
+                        # Ensure Docker is installed and running
+                        sudo apt update && sudo apt install -y docker.io
+                        sudo systemctl start docker
+                        sudo systemctl enable docker
+                        
+                        # Use 'sudo' for every docker command to prevent "Permission Denied"
+                        sudo docker pull denis20/devops-ci-cd-exercise:latest
+                        
+                        echo "Stopping old container..."
+                        sudo docker stop staging-app || true
+                        sudo docker rm staging-app || true
+                        
+                        echo "Starting new container..."
+                        sudo docker run -d --name staging-app -p 5000:5000 denis20/devops-ci-cd-exercise:latest
+                        
+                        echo "Waiting for app to start..."
+                        sleep 10
+                        
+                        # Health check
+                        curl -f http://localhost:5000/health || exit 1
+                        
+                        echo "Deployment successful!"
+                        EOF
+                '''
             }
-
+        }
+    }
     post {
         always {
             cleanWs()
