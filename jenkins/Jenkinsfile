@@ -193,7 +193,7 @@ pipeline {
                     //         docker push ghcr.io/${githubUser}/${repoName}:${env.BUILD_NUMBER}
                     //         docker push ghcr.io/${githubUser}/${repoName}:latest
                     //     """
-                    }
+                    //}
                 }
             }
         }
@@ -217,12 +217,12 @@ pipeline {
                                 docker rm staging-app || true
                                 
                                 # Run the project on EC2 [cite: 52]
-                                docker run -d --name staging-app -p 5000:5000 ${dockerHubUser}/${repoName}:latest
+                                docker run -d --name staging-app -p 5000:5000 -p 8080:8080 ${dockerHubUser}/${repoName}:latest
                                 
                                 # Health check on the instance [cite: 53, 54]
                                 sleep 5
                                 curl -f http://localhost:5000/health || exit 1
-EOF
+                                EOF
                         """
                     }
                 }
@@ -239,7 +239,7 @@ EOF
                 emailext (
                     subject: "✅ Pipeline Success: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
                     mimeType: 'text/html',
-                    body: "<h3>Build ${env.BUILD_NUMBER} passed.</h3><p>Deployed to AWS EC2.</p>",
+                    body: "<h3>Build ${env.BUILD_NUMBER} Passed.</h3><p>Deployed to AWS EC2.</p>",
                     to: "${RESPONSE_EMAIL}" 
                 )
             }
@@ -249,7 +249,7 @@ EOF
                 emailext (
                     subject: "❌ Pipeline Failure: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
                     mimeType: 'text/html',
-                    body: "<h3>Build ${env.BUILD_NUMBER} failed.</h3>",
+                    body: "<h3>Build ${env.BUILD_NUMBER} Failed.</h3>",
                     to: "${RESPONSE_EMAIL}"
                 )
             }
