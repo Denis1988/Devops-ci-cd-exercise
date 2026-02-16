@@ -157,7 +157,7 @@ pipeline {
 
             stage('Build and Push Images') {
                 when {
-                expression { return false }
+                expression { return true }
             }
             steps {
                 script {
@@ -183,16 +183,16 @@ pipeline {
                     }
 
                     // GitHub Container Registry (ensure repoName is lowercase for GHCR)
-                    withCredentials([usernamePassword(credentialsId: 'github-creds', 
-                                                    passwordVariable: 'GH_PAT', 
-                                                    usernameVariable: 'GH_USER')]) {
-                        sh """
-                            echo \$GH_PAT | docker login ghcr.io -u \$GH_USER --password-stdin
-                            docker tag ${repoName}:${env.BUILD_NUMBER} ghcr.io/${githubUser}/${repoName}:${env.BUILD_NUMBER}
-                            docker tag ${repoName}:${env.BUILD_NUMBER} ghcr.io/${githubUser}/${repoName}:latest
-                            docker push ghcr.io/${githubUser}/${repoName}:${env.BUILD_NUMBER}
-                            docker push ghcr.io/${githubUser}/${repoName}:latest
-                        """
+                    // withCredentials([usernamePassword(credentialsId: 'github-creds', 
+                    //                                 passwordVariable: 'GH_PAT', 
+                    //                                 usernameVariable: 'GH_USER')]) {
+                    //     sh """
+                    //         echo \$GH_PAT | docker login ghcr.io -u \$GH_USER --password-stdin
+                    //         docker tag ${repoName}:${env.BUILD_NUMBER} ghcr.io/${githubUser}/${repoName}:${env.BUILD_NUMBER}
+                    //         docker tag ${repoName}:${env.BUILD_NUMBER} ghcr.io/${githubUser}/${repoName}:latest
+                    //         docker push ghcr.io/${githubUser}/${repoName}:${env.BUILD_NUMBER}
+                    //         docker push ghcr.io/${githubUser}/${repoName}:latest
+                    //     """
                     }
                 }
             }
