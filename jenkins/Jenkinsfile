@@ -9,6 +9,9 @@ pipeline {
     
     stages {
         stage('Setup Environment') {
+            when {
+                expression { return true }
+            }
             steps {
                 script {
                     sh 'echo "Setting up Python environment"'
@@ -20,6 +23,9 @@ pipeline {
         }
         
         stage('Lint Code') {
+            when {
+                expression { return true }
+            }
             steps {
                 script {
                     sh ". ${VENV_DIR}/bin/activate && flake8 app/ --output-file=reports/flake8.txt || true"
@@ -34,6 +40,9 @@ pipeline {
         }
         
         stage('Unit Tests') {
+            when {
+                expression { return true }
+            }
             steps {
                 script {
                     sh 'docker rm -f unit-test-app || true'
@@ -61,6 +70,9 @@ pipeline {
         }
         
         stage('Integration Tests') {
+            when {
+                expression { return true }
+            }
             steps {
                 script {
                     sh 'docker rm -f integration-test-app || true'
@@ -79,6 +91,9 @@ pipeline {
         }
         
         stage('End-to-End Tests') {
+            when {
+                expression { return true }
+            }
         steps {
             script {
             sh 'docker rm -f e2e-test-app || true'
@@ -111,6 +126,9 @@ pipeline {
 
         
         stage('Performance Tests') {
+            when {
+                expression { return true }
+            }
             steps {
                 script {
                     sh 'docker rm -f performance-test-app || true'
@@ -138,6 +156,9 @@ pipeline {
         }
 
             stage('Build and Push Images') {
+                when {
+                expression { return false }
+            }
             steps {
                 script {
                     def dockerHubUser = "denis20"
@@ -203,13 +224,13 @@ pipeline {
                 sh 'echo "Pipeline completed successfully!"'
                 emailext (
                     subject: "✅ Pipeline Success: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+                    mimeType: 'text/html',
                     body: """
                         <p>The pipeline completed successfully!</p>
                         <ul>
                             <li><strong>Build:</strong> ${env.BUILD_NUMBER}</li>
                             <li><strong>Branch:</strong> ${env.BRANCH_NAME}</li>
                             <li><strong>Duration:</strong> ${currentBuild.durationString}</li>
-                            <li><strong>Reports:</strong> Check the artifacts section</li>
                         </ul>
                         <p><a href="${env.BUILD_URL}">View Build Details</a></p>
                     """,
@@ -222,6 +243,7 @@ pipeline {
                 sh 'echo "Pipeline failed!"'
                 emailext (
                     subject: "❌ Pipeline Failure: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+                    mimeType: 'text/html',
                     body: """
                         <p>The pipeline failed!</p>
                         <ul>
