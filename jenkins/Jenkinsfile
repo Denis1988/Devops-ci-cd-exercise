@@ -198,7 +198,7 @@ pipeline {
             }
         }
 
-                stage('Deploy to Staging') {
+            stage('Deploy to Staging') {
             steps {
                 script {
                     def ec2Ip = "34.216.141.130"
@@ -224,7 +224,6 @@ pipeline {
                     }
                 }
             }
-        }
 
     post {
         always {
@@ -251,4 +250,5 @@ pipeline {
             }
         }
     }
+            }
 }
