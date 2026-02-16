@@ -196,15 +196,16 @@ pipeline {
                     }
                 }
             }
+        }
 
         stage('Deploy to Staging') {
             steps {
                 script {
-                    def ec2Ip = "34.216.141.130" // Your AWS EC2 IP [cite: 44]
+                    def ec2Ip = "34.216.141.130"
                     def dockerHubUser = "denis20"
                     def repoName = "devops-ci-cd-exercise"
 
-                    // This requires the 'SSH Agent' plugin and credentials ID 'aws-ec2-ssh' [cite: 45]
+                    // This requires the 'SSH Agent' plugin and credentials ID 'aws-ec2-ssh'
                     sshagent(['aws-ec2-ssh']) {
                         sh """
                             ssh -o StrictHostKeyChecking=no ubuntu@${ec2Ip} << 'EOF'
@@ -227,19 +228,19 @@ EOF
                 }
             }
         }
-    } // End of stages 
+    }
 
     post {
         always {
-            cleanWs() // [cite: 55]
+            cleanWs()
         }
         success {
             script {
                 emailext (
                     subject: "✅ Pipeline Success: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
-                    mimeType: 'text/html', // [cite: 56]
+                    mimeType: 'text/html',
                     body: "<h3>Build ${env.BUILD_NUMBER} passed.</h3><p>Deployed to AWS EC2.</p>",
-                    to: "${RESPONSE_EMAIL}" // [cite: 59]
+                    to: "${RESPONSE_EMAIL}" 
                 )
             }
         }
@@ -247,9 +248,9 @@ EOF
             script {
                 emailext (
                     subject: "❌ Pipeline Failure: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
-                    mimeType: 'text/html', // [cite: 60]
+                    mimeType: 'text/html',
                     body: "<h3>Build ${env.BUILD_NUMBER} failed.</h3>",
-                    to: "${RESPONSE_EMAIL}" // [cite: 63]
+                    to: "${RESPONSE_EMAIL}"
                 )
             }
         }
