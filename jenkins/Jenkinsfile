@@ -196,43 +196,40 @@ pipeline {
                     }
                 }
             }
-        }
 
+        stage('Deploy to Staging') {
+                    steps {
+                        script {
+                            // Replace 'YOUR_EC2_PUBLIC_IP' with your actual instance IP
+                            def ec2Ip = "34.216.141.130"
+                            def dockerHubUser = "denis20"
+                            def repoName = "devops-ci-cd-exercise"
 
-stage('Deploy to Staging') {
-            steps {
-                script {
-                    // Replace 'YOUR_EC2_PUBLIC_IP' with your actual instance IP
-                    def ec2Ip = "34.216.141.130"
-                    def dockerHubUser = "denis20"
-                    def repoName = "devops-ci-cd-exercise"
-
-                    // Use the SSH agent to manage your .pem key
-                    sshagent(['aws-ec2-ssh']) {
-                        sh """
-                            ssh -o StrictHostKeyChecking=no ubuntu@${ec2Ip} << 'EOF'
-                                # Log in to Docker Hub on the EC2 instance
-                                # (Assumes you have manually logged in once or set up a config)
-                                
-                                # Pull the latest image
-                                docker pull ${dockerHubUser}/${repoName}:latest
-                                
-                                # Stop and remove existing container
-                                docker stop staging-app || true
-                                docker rm staging-app || true
-                                
-                                # Run the new container
-                                docker run -d --name staging-app -p 5000:5000 ${dockerHubUser}/${repoName}:latest
-                                
-                                # Optional: Wait for startup and check health locally on EC2
-                                sleep 5
-                                curl -f http://localhost:5000/health || exit 1
-EOF
-                        """
+                            // Use the SSH agent to manage your .pem key
+                            sshagent(['aws-ec2-ssh']) {
+                                sh """
+                                    ssh -o StrictHostKeyChecking=no ubuntu@${ec2Ip} << 'EOF'
+                                        # Log in to Docker Hub on the EC2 instance
+                                        # (Assumes you have manually logged in once or set up a config)
+                                        
+                                        # Pull the latest image
+                                        docker pull ${dockerHubUser}/${repoName}:latest
+                                        
+                                        # Stop and remove existing container
+                                        docker stop staging-app || true
+                                        docker rm staging-app || true
+                                        
+                                        # Run the new container
+                                        docker run -d --name staging-app -p 5000:5000 ${dockerHubUser}/${repoName}:latest
+                                        
+                                        # Optional: Wait for startup and check health locally on EC2
+                                        sleep 5
+                                        curl -f http://localhost:5000/health || exit 1
+                                        EOF
+                                """
+                            }
+                        }
                     }
-                }
-            }
-        }
     post {
         always {
             cleanWs()
@@ -276,5 +273,6 @@ EOF
                 )
             }
         }
+    }
     }
 }
