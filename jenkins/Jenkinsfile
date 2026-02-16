@@ -198,28 +198,25 @@ pipeline {
             }
         }
 
-        stage('Deploy to Staging') {
+                stage('Deploy to Staging') {
             steps {
                 script {
                     def ec2Ip = "34.216.141.130"
                     def dockerHubUser = "denis20"
-                    def repoName = "devops-ci-cd-exercise"
+                    def repoName = "devops-ci-cd-exercise" 
 
-                    // This requires the 'SSH Agent' plugin and credentials ID 'aws-ec2-ssh'
-                    sshagent(['aws-ec2-ssh']) {
+                    withCredentials([file(credentialsId: 'my-aws-key', variable: 'PEM_KEY')]) {
                         sh """
-                            ssh -o StrictHostKeyChecking=no ubuntu@${ec2Ip} << 'EOF'
-                                # Pull the latest image from Docker Hub [cite: 48]
+                            # Change permissions of the temp key file so SSH doesn't complain
+                            chmod 400 ${PEM_KEY}
+                            
+                            # Connect using the identity file (-i)
+                            ssh -i ${PEM_KEY} -o StrictHostKeyChecking=no ubuntu@${ec2Ip} << 'EOF'
+                                echo "Connected to EC2 successfully!"
                                 docker pull ${dockerHubUser}/${repoName}:latest
-                                
-                                # Clean up old containers [cite: 49, 50, 51]
                                 docker stop staging-app || true
                                 docker rm staging-app || true
-                                
-                                # Run the project on EC2 [cite: 52]
-                                docker run -d --name staging-app -p 5000:5000 -p 8080:8080 ${dockerHubUser}/${repoName}:latest
-                                
-                                # Health check on the instance [cite: 53, 54]
+                                docker run -d --name staging-app -p 5000:5000 ${dockerHubUser}/${repoName}:latest
                                 sleep 5
                                 curl -f http://localhost:5000/health || exit 1
                                 EOF
@@ -228,7 +225,6 @@ pipeline {
                 }
             }
         }
-    }
 
     post {
         always {
