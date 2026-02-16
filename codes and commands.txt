@@ -9,6 +9,3 @@ docker exec -it jenkins /bin/bash
 
 code of jenkins:
 b9cdde2b441c4f3ba0035e030fbcf835
-
-git token
-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
