@@ -198,73 +198,66 @@ pipeline {
             }
         }
 
-            stage('Deploy to Staging') {
-    steps {
-        script {
-            def ec2Ip = "34.216.141.130"
-            def dockerHubUser = "denis20"
-            def repoName = "devops-ci-cd-exercise" 
+stage('Deploy to Staging') {
+            steps {
+                script {
+                    def ec2Ip = "34.216.141.130"
+                    def dockerHubUser = "denis20"
+                    def repoName = "devops-ci-cd-exercise" 
 
-            withCredentials([file(credentialsId: 'my-aws-key', variable: 'PEM_KEY')]) {
-                // Use single quotes (''') for the sh block to fix the "Insecure Interpolation" warning
-                sh '''
-                    chmod 400 $PEM_KEY
-                    
-                    ssh -i $PEM_KEY -o StrictHostKeyChecking=no ubuntu@34.216.141.130 << 'EOF'
-                        echo "Connected to EC2 successfully!"
-                        
-                        # Ensure Docker is installed and running
-                        sudo apt update && sudo apt install -y docker.io
-                        sudo systemctl start docker
-                        sudo systemctl enable docker
-                        
-                        # Use 'sudo' for every docker command to prevent "Permission Denied"
-                        sudo docker pull denis20/devops-ci-cd-exercise:latest
-                        
-                        echo "Stopping old container..."
-                        sudo docker stop staging-app || true
-                        sudo docker rm staging-app || true
-                        
-                        echo "Starting new container..."
-                        sudo docker run -d --name staging-app -p 5000:5000 denis20/devops-ci-cd-exercise:latest
-                        
-                        echo "Waiting for app to start..."
-                        sleep 10
-                        
-                        # Health check
-                        curl -f http://localhost:5000/health || exit 1
-                        
-                        echo "Deployment successful!"
-                        EOF
-                '''
+                    withCredentials([file(credentialsId: 'my-aws-key', variable: 'PEM_KEY')]) {
+                        sh '''
+                            chmod 400 $PEM_KEY
+                            ssh -i $PEM_KEY -o StrictHostKeyChecking=no ubuntu@34.216.141.130 << 'EOF'
+                                echo "Connected to EC2 successfully!"
+                                sudo apt update && sudo apt install -y docker.io
+                                sudo systemctl start docker
+                                sudo systemctl enable docker
+                                
+                                sudo docker pull denis20/devops-ci-cd-exercise:latest
+                                
+                                echo "Stopping old container..."
+                                sudo docker stop staging-app || true
+                                sudo docker rm staging-app || true
+                                
+                                echo "Starting new container..."
+                                sudo docker run -d --name staging-app -p 5000:5000 denis20/devops-ci-cd-exercise:latest
+                                
+                                echo "Waiting for app to start..."
+                                sleep 10
+                                
+                                curl -f http://localhost:5000/health || exit 1
+                                echo "Deployment successful!"
+EOF
+                        '''
+                    }
+                }
+            }
+            post {
+                always {
+                    cleanWs()
+                }
+                success {
+                    script {
+                        emailext (
+                            subject: "✅ Pipeline Success: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+                            mimeType: 'text/html',
+                            body: "<h3>Build ${env.BUILD_NUMBER} Passed.</h3><p>Deployed to AWS EC2.</p>",
+                            to: "${RESPONSE_EMAIL}" 
+                        )
+                    }
+                }
+                failure {
+                    script {
+                        emailext (
+                            subject: "❌ Pipeline Failure: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+                            mimeType: 'text/html',
+                            body: "<h3>Build ${env.BUILD_NUMBER} Failed.</h3>",
+                            to: "${RESPONSE_EMAIL}"
+                        )
+                    }
+                }
             }
         }
-    }
-    post {
-        always {
-            cleanWs()
-        }
-        success {
-            script {
-                emailext (
-                    subject: "✅ Pipeline Success: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
-                    mimeType: 'text/html',
-                    body: "<h3>Build ${env.BUILD_NUMBER} Passed.</h3><p>Deployed to AWS EC2.</p>",
-                    to: "${RESPONSE_EMAIL}" 
-                )
             }
-        }
-        failure {
-            script {
-                emailext (
-                    subject: "❌ Pipeline Failure: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
-                    mimeType: 'text/html',
-                    body: "<h3>Build ${env.BUILD_NUMBER} Failed.</h3>",
-                    to: "${RESPONSE_EMAIL}"
-                )
-            }
-        }
-    }
-            }
-}
 }
